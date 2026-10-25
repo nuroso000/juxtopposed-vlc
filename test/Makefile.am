@@ -68,6 +68,7 @@ check_PROGRAMS = \
 	test_src_misc_actions \
 	test_src_input_stream \
 	test_src_input_stream_fifo \
+	test_src_preparser_serializer \
 	test_src_preparser_cmp_internal_external \
 	test_src_preparser_subtree_identity \
 	test_src_preparser_folder_options \
@@ -223,6 +224,12 @@ AM_LDFLAGS = -no-install $(LDFLAGS_vlc)
 LIBVLCCORE = -L../src/ -lvlccore
 LIBVLC = -L../lib -lvlc
 
+if HAVE_LINUX
+check_PROGRAMS += test_modules_services_discovery_sap
+test_modules_services_discovery_sap_SOURCES = modules/services_discovery/sap.c
+test_modules_services_discovery_sap_LDADD = $(LIBVLC) $(LIBVLCCORE)
+endif
+
 test_src_misc_configured_proxy_SOURCES = src/misc/configured_proxy.c
 test_src_misc_configured_proxy_LDADD = $(LIBVLC) $(LIBVLCCORE)
 
@@ -330,6 +337,8 @@ test_src_input_stream_net_CFLAGS = $(AM_CFLAGS) -DTEST_NET
 test_src_input_stream_net_LDADD = $(LIBVLCCORE) $(LIBVLC)
 test_src_input_stream_fifo_SOURCES = src/input/stream_fifo.c
 test_src_input_stream_fifo_LDADD = $(LIBVLCCORE) $(LIBVLC)
+test_src_preparser_serializer_SOURCES = src/preparser/serializer.c
+test_src_preparser_serializer_LDADD = $(LIBVLCCORE) $(LIBVLC)
 test_src_preparser_cmp_internal_external_SOURCES = src/preparser/cmp_internal_external.c
 test_src_preparser_cmp_internal_external_LDADD = $(LIBVLCCORE) $(LIBVLC)
 test_src_preparser_folder_options_SOURCES = src/preparser/folder_options.c
