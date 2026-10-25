@@ -957,8 +957,60 @@ static void *Thread( void *obj )
     if (!qEnvironmentVariableIsSet("QSG_DISTANCEFIELD_ANTIALIASING"))
         qputenv("QSG_DISTANCEFIELD_ANTIALIASING", QByteArrayLiteral("gray"));
 
+    class AppEventSpy : public QObject
+    {
+        qt_intf_t *m_intf;
+        QVariantList m_pendingFiles;
+        bool m_fileOpeningReady = false;
+
+        void openPendingFiles()
+        {
+            if (!m_fileOpeningReady || !m_intf->p_mainPlaylistController || m_pendingFiles.isEmpty())
+                return;
+            const auto files = m_pendingFiles;
+            m_pendingFiles.clear();
+            m_intf->p_mainPlaylistController->append(files, true);
+        }
+    public:
+        AppEventSpy(QObject *parent, qt_intf_t *intf)
+             : QObject(parent), m_intf(intf)
+        {
+            qGuiApp->installEventFilter(this);
+        }
+        void enableFileOpening()
+        {
+            m_fileOpeningReady = true;
+            openPendingFiles();
+        }
+        bool eventFilter(QObject *o, QEvent *e) override
+        {
+            (void)o;
+            if (e->type() == QEvent::Quit)
+            {
+             DialogsProvider::getInstance(m_intf)->quit();
+                return true;
+            }
+            if (e->type() == QEvent::FileOpen)
+            {
+                // Finder sends Apple document/URL events through Qt, including
+                // during startup before the playlist controller is available.
+                const auto event = static_cast<QFileOpenEvent *>(e);
+                const auto url = event->url().isEmpty()
+                    ? QUrl::fromLocalFile(event->file()) : event->url();
+                if (url.isValid() && !url.isEmpty())
+                    m_pendingFiles.append(url);
+                openPendingFiles();
+                e->accept();
+                return true;
+            }
+            return false;
+        }
+    };
+
     /* Start the QApplication here */
     QApplication app( argc, argv );
+    // Capture Finder events before font and translation setup can pump Cocoa.
+    AppEventSpy appEventSpy(&app, p_intf);
     app.setProperty("initialStyle", app.style()->name());
 
     // Use the Figma design's font on every platform, including machines where
@@ -1010,56 +1062,6 @@ static void *Thread( void *obj )
      * libvlc_Quit() to unload the interface from Close and avoid
      * racing the window by removing the eventloop before it's
      * destroyed. */
-    class AppEventSpy : public QObject
-    {
-        qt_intf_t *m_intf;
-        QVariantList m_pendingFiles;
-        bool m_fileOpeningReady = false;
-
-        void openPendingFiles()
-        {
-            if (!m_fileOpeningReady || !m_intf->p_mainPlaylistController || m_pendingFiles.isEmpty())
-                return;
-            const auto files = m_pendingFiles;
-            m_pendingFiles.clear();
-            m_intf->p_mainPlaylistController->append(files, true);
-        }
-    public:
-        AppEventSpy(QObject *parent, qt_intf_t *intf)
-             : QObject(parent), m_intf(intf)
-        {
-            qGuiApp->installEventFilter(this);
-        }
-        void enableFileOpening()
-        {
-            m_fileOpeningReady = true;
-            openPendingFiles();
-        }
-        bool eventFilter(QObject *o, QEvent *e) override
-        {
-            (void)o;
-            if (e->type() == QEvent::Quit)
-            {
-             DialogsProvider::getInstance(m_intf)->quit();
-                return true;
-            }
-            if (e->type() == QEvent::FileOpen)
-            {
-                // Finder sends Apple document/URL events through Qt, including
-                // during startup before the playlist controller is available.
-                const auto event = static_cast<QFileOpenEvent *>(e);
-                const auto url = event->url().isEmpty()
-                    ? QUrl::fromLocalFile(event->file()) : event->url();
-                if (url.isValid() && !url.isEmpty())
-                    m_pendingFiles.append(url);
-                openPendingFiles();
-                e->accept();
-                return true;
-            }
-            return false;
-        }
-    };
-    AppEventSpy appEventSpy(&app, p_intf);
 
     registerMetaTypes();
 
