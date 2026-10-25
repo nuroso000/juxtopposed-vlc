@@ -14,7 +14,7 @@ The previously supplied beta.4 app still contains its old endpoint. Install this
 
 ## Install the DMG
 
-Download `VLC-4.0.0-beta.5-macos-arm64.dmg` from this fork's release. Quit VLC, open the image, drag **VLC.app** onto **Applications**, and choose **Replace** when Finder asks about the existing `/Applications/VLC.app`. Eject the image and launch VLC from Applications. The image does not run an automatic installer or remove user media/preferences.
+Download `VLC-4.0.0-beta.5-macos-arm64-r2.dmg` from this fork's release. Quit VLC, open the image, drag **VLC.app** onto **Applications**, and choose **Replace** when Finder asks about the existing `/Applications/VLC.app`. Eject the image and launch VLC from Applications. The image does not run an automatic installer or remove user media/preferences.
 
 The app bundle and Finder display name are **VLC**. This fork keeps its own internal bundle identifier and update channel. The earlier ZIP remains available for compatibility; the DMG is the recommended macOS download.
 
@@ -23,7 +23,7 @@ To create the image from a verified build:
 ```sh
 python3 extras/package/release/make-macos-dmg.py \
   "build-release-output/macos-arm64/VLC.app" \
-  --output "build-release-output/VLC-4.0.0-beta.5-macos-arm64.dmg"
+  --output "build-release-output/VLC-4.0.0-beta.5-macos-arm64-r2.dmg"
 ```
 
 The packaging script also accepts the earlier `VLC Juxtopposed.app` as input, copies it as `VLC.app`, updates the display name, re-signs the outer bundle, verifies nested signatures and creates a compressed disk image with an Applications link. Its sidecar records both the compiled source commit and packaging commit. No installed app is modified while creating the image.
@@ -56,6 +56,8 @@ VLC by VideoLAN and contributors. Community interface by dsojevic and contributo
 Some specialist dialogs retain their VLC arrangement under the theme. Every Figma state has not received a pixel-diff certificate. Device, codec, HDR, casting and online-service support require their own testing.
 
 ## Finder document opening
+
+Use the r2 installer or later: the first beta.5 image omitted native document declarations and Finder event forwarding.
 
 macOS packages retain VLC's native media, URL and imported/exported type declarations. Qt handles Finder document events through `QFileOpenEvent`, queues files received during startup, and passes them to the playlist after initialization. Opening another document in an already running app uses the same path.
 
