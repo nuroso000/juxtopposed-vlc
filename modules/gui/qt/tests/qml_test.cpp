@@ -19,6 +19,9 @@
 #include <QtQuickTest>
 #include <QQmlContext>
 #include <QtMath>
+#include <QFontDatabase>
+#include <QFontMetrics>
+#include <QGuiApplication>
 #include "qml_test.hpp"
 
 TestWindowImage::TestWindowImage(QQuickWindow *window)
@@ -63,6 +66,12 @@ QObject *TestImages::grabWindow(QQuickItem *item) const
 
 void Setup::qmlEngineAvailable(QQmlEngine *engine)
 {
+#ifdef Q_OS_MACOS
+    // Modified 2026-10-24: the offscreen plugin has no macOS default font.
+    QGuiApplication::setFont(QFontDatabase::systemFont(QFontDatabase::GeneralFont));
+    // Resolve the offscreen style alias before tests enable failOnWarning.
+    (void)QFontMetrics(QFont(QStringLiteral("Sans Serif"))).horizontalAdvance(QStringLiteral("Warmup"));
+#endif
 #if QT_VERSION < QT_VERSION_CHECK(6, 5, 0)
     engine->addImportPath(":/qt/qml");
 #endif

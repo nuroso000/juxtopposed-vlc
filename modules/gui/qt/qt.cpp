@@ -1,3 +1,4 @@
+/* Modified 2026-10-24: isolate explicitly configured private Qt profiles. */
 /*****************************************************************************
  * qt.cpp : Qt interface
  ****************************************************************************
@@ -52,6 +53,7 @@ extern "C" char **environ;
 #endif
 
 #include <QApplication>
+#include <QDir>
 #include <QFontDatabase>
 #include <QDate>
 #include <QMutex>
@@ -1052,7 +1054,17 @@ static void *Thread( void *obj )
     }
 #endif
 
-    p_intf->mainSettings = new QSettings(
+    // Explicit private data directories must also isolate Qt settings on
+    // macOS. This supports independent test/portable instances without
+    // modifying the normal player's native preferences domain.
+    const QString privateData = qEnvironmentVariable("VLC_USERDATA_PATH");
+    if (!privateData.isEmpty())
+    {
+        QDir().mkpath(privateData);
+        p_intf->mainSettings = new QSettings(
+            QDir(privateData).filePath(QStringLiteral("vlc-qt-interface.ini")), QSettings::IniFormat);
+    }
+    else p_intf->mainSettings = new QSettings(
 #ifdef _WIN32
             QSettings::IniFormat,
 #else

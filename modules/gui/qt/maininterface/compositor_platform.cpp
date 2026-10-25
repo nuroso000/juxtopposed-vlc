@@ -1,3 +1,4 @@
+/* Modified 2026-10-24: macOS accessibility and build compatibility. */
 /*****************************************************************************
  * Copyright (C) 2024 VLC authors and VideoLAN
  *
@@ -20,6 +21,7 @@
 #include <QApplication>
 #include <QQuickView>
 #include <QOperatingSystemVersion>
+#include <QAccessible>
 
 #include "maininterface/interface_window_handler.hpp"
 
@@ -31,6 +33,19 @@
 #endif
 
 using namespace vlc;
+
+#if QT_CONFIG(accessibility)
+QAccessibleInterface *CompositorPlatformRootWindow::accessibleRoot() const
+{
+#if defined(QT_DECLARATIVE_PRIVATE)
+    // Cocoa asks the native QWindow for this root rather than discovering
+    // child QQuickViews through the application-level accessibility factory.
+    return QAccessible::queryAccessibleInterface(const_cast<CompositorPlatformRootWindow *>(this));
+#else
+    return accessibleWindow ? accessibleWindow->accessibleRoot() : nullptr;
+#endif
+}
+#endif
 
 
 CompositorPlatform::CompositorPlatform(qt_intf_t *p_intf, QObject *parent)
@@ -76,9 +91,14 @@ bool CompositorPlatform::makeMainInterface(MainCtx *mainCtx, std::function<void 
 {
     m_mainCtx = mainCtx;
 
-    m_rootWindow = std::make_unique<QWindow>();
+#if !defined(QT_NO_ACCESSIBILITY) && defined(QT_DECLARATIVE_PRIVATE)
+    QAccessible::installFactory(&compositionAccessibleFactory);
+#endif
+    m_rootWindow = std::make_unique<CompositorPlatformRootWindow>();
 
     m_videoWindow = new QWindow(m_rootWindow.get());
+    m_quickWindow = new QQuickView(m_rootWindow.get());
+    m_rootWindow->accessibleWindow = m_quickWindow;
 
 #ifdef Q_OS_MACOS
     {
@@ -100,7 +120,6 @@ bool CompositorPlatform::makeMainInterface(MainCtx *mainCtx, std::function<void 
     }
 #endif
 
-    m_quickWindow = new QQuickView(m_rootWindow.get());
     m_quickWindow->setResizeMode(QQuickView::SizeRootObjectToView);
 
     {
@@ -120,6 +139,14 @@ bool CompositorPlatform::makeMainInterface(MainCtx *mainCtx, std::function<void 
 
     const bool ret = commonGUICreate(m_rootWindow.get(), m_quickWindow, CompositorVideo::CAN_SHOW_PIP | CompositorVideo::HAS_ACRYLIC);
 
+#if !defined(QT_NO_ACCESSIBILITY) && defined(QT_DECLARATIVE_PRIVATE)
+    // Qt can cache the base QWindow interface while constructing the child
+    // native views. Recreate it after the complete QML scene is available.
+    if (auto *cached = QAccessible::queryAccessibleInterface(m_rootWindow.get()))
+        QAccessible::deleteAccessibleInterface(QAccessible::uniqueId(cached));
+    QAccessible::queryAccessibleInterface(m_rootWindow.get());
+#endif
+
     m_quickWindow->setFlag(Qt::FramelessWindowHint);
     // Qt QPA Bug (qwindows, qdirect2d(?)): to trigger WS_EX_LAYERED set up.
     m_quickWindow->setOpacity(0.0);
@@ -135,6 +162,11 @@ bool CompositorPlatform::makeMainInterface(MainCtx *mainCtx, std::function<void 
     m_quickWindow->setVisible(true);
 
     m_quickWindow->raise(); // Make sure quick window is above the video window.
+
+#if !defined(QT_NO_ACCESSIBILITY) && defined(QT_DECLARATIVE_PRIVATE)
+    QAccessibleEvent sceneReady(m_rootWindow.get(), QAccessible::ObjectReorder);
+    QAccessible::updateAccessibility(&sceneReady);
+#endif
 
     return ret;
 }
@@ -199,9 +231,9 @@ QQuickItem *CompositorPlatform::activeFocusItem() const
 
 bool CompositorPlatform::eventFilter(QObject *watched, QEvent *event)
 {
-    // Forward drag events to the child quick window,
-    // as it is not done automatically by Qt with
-    // nested windows:
+    // Nested platform windows do not automatically deliver top-level drag
+    // and keyboard events to the QML scene. Keep focus navigation and dialog
+    // shortcuts on the same input path as the visible controls.
     if (m_quickWindow && watched == m_rootWindow.get())
     {
         switch (event->type()) {
@@ -210,6 +242,9 @@ bool CompositorPlatform::eventFilter(QObject *watched, QEvent *event)
         case QEvent::DragMove:
         case QEvent::DragResponse:
         case QEvent::Drop:
+        case QEvent::KeyPress:
+        case QEvent::KeyRelease:
+        case QEvent::ShortcutOverride:
             QApplication::sendEvent(m_quickWindow, event);
             return true;
         default:

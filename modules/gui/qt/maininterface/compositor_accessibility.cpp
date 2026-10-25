@@ -1,3 +1,4 @@
+/* Modified 2026-10-24: macOS accessibility and build compatibility. */
 /*****************************************************************************
  * Copyright (C) 2023 the VideoLAN team
  *
@@ -28,6 +29,7 @@
 
 #include "compositor_accessibility.hpp"
 #include "compositor.hpp"
+#include "compositor_platform.hpp"
 
 #ifdef QT_HAS_X11_COMPOSITOR
 #  include "compositor_x11_renderwindow.hpp"
@@ -257,6 +259,11 @@ private:
 
 QAccessibleInterface* compositionAccessibleFactory(const QString &classname, QObject *object)
 {
+    if (classname == QLatin1String("vlc::CompositorPlatformRootWindow"))
+    {
+        auto *window = qobject_cast<CompositorPlatformRootWindow *>(object);
+        return new QAccessibleRenderWindow(window, window);
+    }
 #ifdef QT_HAS_X11_COMPOSITOR
     if (classname == QLatin1String("vlc::CompositorX11RenderWindow"))
     {

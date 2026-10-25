@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
+// Modified 2026-10-24: refresh details when add-on metadata changes.
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls.Basic as C
@@ -14,7 +15,7 @@ ColumnLayout {
     property bool discoveryRequested: false
     signal websiteRequested(string url)
     readonly property RedesignTheme theme: RedesignTheme { scaleFactor: root.scaleFactor; lightTheme: root.lightTheme; accentColor: root.accentColor }
-    readonly property var selectedAddon: { backend.revision; return selectedId.length ? backend.addonById(selectedId) : ({}) }
+    readonly property var selectedAddon: { backend.revision; return selectedId.length ? Object.assign({}, backend.addonById(selectedId)) : ({}) }
     readonly property bool canAdd: !backend.loading && selectedAddon.state === 0 && selectedAddon.manageable && !selectedAddon.broken && !selectedAddon.pending
     readonly property bool canRemove: !backend.loading && selectedAddon.state === 2 && selectedAddon.manageable && !selectedAddon.pending
     readonly property string website: String(selectedAddon.website || "").trim()

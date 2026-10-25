@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
+// Modified 2026-10-24: show the reference library home on an idle startup.
 import QtQuick
 import QtQuick.Window
 import VLC.MainInterface
@@ -17,6 +18,7 @@ FocusScope {
     readonly property ColorContext colorContext: ColorContext { palette: VLCStyle.palette; colorSet: ColorContext.Window }
     readonly property bool resumeAvailable: Player.canRestorePlayback
     property int queueTab: 0
+    property bool startupLibraryShown: false
     // The projection retains folder state while its lazy source is unloaded.
     PlaylistTreeModel { id: queueTreeModel; treeEnabled: MainCtx.playlistTree }
     property int requestedLibraryCategory: -1
@@ -314,10 +316,26 @@ FocusScope {
         seriesContextTimer.restart()
         MainCtx.playqueuePanel.docked = true
         view.queueOpen = MainCtx.playqueuePanel.visible
+        Qt.callLater(() => {
+            if (!Player.isStarted && MainCtx.mediaLibraryAvailable && !MainCtx.minimalView) {
+                openLibraryCategory(0)
+                view.libraryExpanded = true
+                view.miniPlayerVisible = false
+                startupLibraryShown = true
+            }
+        })
     }
 
     RedesignPlayerView {
         id: view
+        onStartedChanged: {
+            if (started && rootPlayer.startupLibraryShown) {
+                rootPlayer.startupLibraryShown = false
+                libraryOpen = false
+                libraryExpanded = false
+                miniPlayerVisible = true
+            }
+        }
         objectName: "redesignPlayer"
         anchors.fill: parent
         focus: true

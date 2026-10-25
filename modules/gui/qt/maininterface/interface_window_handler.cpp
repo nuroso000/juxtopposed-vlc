@@ -1,3 +1,4 @@
+/* Modified 2026-10-24: macOS accessibility and build compatibility. */
 /*****************************************************************************
  * Copyright (C) 2020 VideoLAN and AUTHORS
  *
@@ -86,11 +87,16 @@ InterfaceWindowHandler::InterfaceWindowHandler(qt_intf_t *_p_intf, MainCtx* main
             m_window->hide();
     }, Qt::QueuedConnection);
 
-    m_window->setTitle("");
+    // The custom title bar is drawn in QML; the native window still needs a
+    // useful name for the window switcher and assistive technologies.
+    m_window->setTitle(qtr("VLC Media Player"));
 
     if( var_InheritBool( p_intf, "qt-name-in-title" ) )
     {
-        connect( THEMIM, &PlayerController::nameChanged, m_window, &QWindow::setTitle );
+        connect(THEMIM, &PlayerController::nameChanged, m_window,
+                [window = m_window](const QString &name) {
+                    window->setTitle(name.isEmpty() ? qtr("VLC Media Player") : name);
+                });
     }
 
     connect( m_window, &QWindow::screenChanged, m_mainCtx, &MainCtx::updateIntfScaleFactor );

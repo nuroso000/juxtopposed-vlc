@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
+// Modified 2026-10-24: add persistent detailed library rows.
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls.Basic as C
@@ -27,6 +28,7 @@ Item {
     property var menuForItem: (index, section) => null
     property string searchText: ""
     property alias grid: viewMode.grid
+    property alias details: viewMode.details
     property bool expanded: false
     property bool playlistOpen: false
     property bool playlistEditing: false
@@ -123,11 +125,13 @@ Item {
         readonly property string storageKey: "Juxtopposed/library-view"
         property var saved: ({})
         property bool grid: false
+        property bool details: false
         property bool ready: false
         property bool applying: false
         function apply() {
             applying = true
-            grid = typeof saved[mode] === "boolean" ? saved[mode] : root.expanded
+            grid = typeof saved[mode] === "boolean" ? saved[mode] : saved[mode] === "details" ? false : root.expanded
+            details = saved[mode] === "details"
             applying = false
         }
         function load() {
@@ -139,7 +143,12 @@ Item {
         }
         onGridChanged: {
             if (!ready || applying) return
-            saved = Object.assign({}, saved, {[mode]: grid})
+            saved = Object.assign({}, saved, {[mode]: details ? "details" : grid})
+            if (ctx) ctx.setSettingValue(storageKey, JSON.stringify(saved))
+        }
+        onDetailsChanged: {
+            if (!ready || applying) return
+            saved = Object.assign({}, saved, {[mode]: details ? "details" : grid})
             if (ctx) ctx.setSettingValue(storageKey, JSON.stringify(saved))
         }
         onModeChanged: if (ready) apply()
@@ -271,12 +280,13 @@ Item {
         videoBackdropContent: root.videoBackdropContent
         objectName: "libraryViewMenu"
         scaleFactor: root.scaleFactor; lightTheme: root.lightTheme; accentColor: root.accentColor
-        checkedAction: root.grid ? "grid" : "list"
+        checkedAction: root.details ? "details" : root.grid ? "grid" : "list"
         entries: [
             { action: "grid", label: qsTr("Grid View"), icon: "grid" },
-            { action: "list", label: qsTr("List View"), icon: "list-view" }
+            { action: "list", label: qsTr("List View"), icon: "list-view" },
+            { action: "details", label: qsTr("Details View"), icon: "list-view" }
         ]
-        onActionRequested: action => root.grid = action === "grid"
+        onActionRequested: action => { root.grid = action === "grid"; root.details = action === "details" }
     }
 
     RedesignLibraryNavigation {
@@ -509,8 +519,8 @@ Item {
             clip: true
             model: root.mediaModel
             visible: !root.homeSectionsVisible && root.itemCount > 0
-            cellWidth: root.expanded ? Math.min(width, theme.dp(root.grid ? root.squareCards ? 220 : 336 : 416)) : root.grid ? width / Math.max(1, Math.floor(width / theme.dp(130))) : width
-            cellHeight: root.grid ? root.expanded ? (cellWidth - theme.dp(20)) * (root.squareCards ? 1 : 9 / 16) + theme.dp(root.category === 2 ? 88 : 79) : theme.dp(142) : theme.dp(root.podcastView ? 62 : 42)
+            cellWidth: root.details ? width : root.expanded ? Math.min(width, theme.dp(root.grid ? root.squareCards ? 220 : 336 : 416)) : root.grid ? width / Math.max(1, Math.floor(width / theme.dp(130))) : width
+            cellHeight: root.grid ? root.expanded ? (cellWidth - theme.dp(20)) * (root.squareCards ? 1 : 9 / 16) + theme.dp(root.category === 2 ? 88 : 79) : theme.dp(142) : theme.dp(root.details ? 66 : root.podcastView ? 62 : 42)
             keyNavigationEnabled: true
             currentIndex: -1
             function moveFocus(key) {
@@ -615,7 +625,7 @@ Item {
                             id: thumbnail
                             objectName: "libraryArtwork" + delegate.index
                             x: root.grid && !root.expanded ? theme.dp(4) : 0
-                            y: root.grid ? 0 : (parent.height - height) / 2
+                            y: root.grid ? 0 : root.details ? theme.dp(10) : (parent.height - height) / 2
                             width: root.grid ? parent.width - (root.expanded ? 0 : theme.dp(8)) : theme.dp(32)
                             height: root.grid ? root.expanded ? width * (root.squareCards ? 1 : 9 / 16) : theme.dp(90) : theme.dp(32)
                             scaleFactor: root.scaleFactor; lightTheme: root.lightTheme; accentColor: root.accentColor
@@ -630,10 +640,11 @@ Item {
                             surroundColor: mediaButton.down || mediaButton.selected ? theme.selected : mediaButton.hovered ? theme.hover : theme.panel
                         }
                         Text {
+                            id: titleLabel
                             objectName: "libraryTitle" + delegate.index
                             x: root.grid ? root.expanded ? 0 : theme.dp(4) : thumbnail.width + theme.dp(10)
                             y: root.grid ? thumbnail.y + thumbnail.height + (root.expanded ? theme.dp(35) - baselineOffset : theme.dp(6))
-                                : parent.height / 2 + theme.dp(delegate.episodeInfo ? -4 : 5.5) - baselineOffset
+                                : root.details ? theme.dp(10) : parent.height / 2 + theme.dp(delegate.episodeInfo ? -4 : 5.5) - baselineOffset
                             width: root.grid ? parent.width - (root.expanded ? 0 : theme.dp(8)) : Math.max(0, parent.width - x - theme.dp(26))
                             text: delegate.displayTitle; textFormat: Text.PlainText; elide: Text.ElideRight
                             color: delegate.isCurrent && root.expanded && !root.grid ? theme.accent
@@ -644,8 +655,19 @@ Item {
                             font.pixelSize: theme.dp(root.expanded && root.grid ? 16 : 14)
                         }
                         Text {
+                            objectName: "libraryDetails" + delegate.index
+                            visible: root.details
+                            x: titleLabel.x; y: titleLabel.y + titleLabel.height + theme.dp(5)
+                            width: titleLabel.width
+                            text: [delegate.itemArtist, model.album_title || "", String(model.fileUrl || model.url || model.mrl || model.uri || "")].filter(value => value.length > 0).join("  ·  ")
+                            textFormat: Text.PlainText; elide: Text.ElideMiddle
+                            color: theme.playerLabel; font.pixelSize: theme.dp(12)
+                            Accessible.role: Accessible.StaticText
+                            Accessible.name: text
+                        }
+                        Text {
                             objectName: "libraryArtist" + delegate.index
-                            visible: delegate.episodeInfo.length > 0 || root.expanded && root.grid && delegate.itemArtist.length > 0
+                            visible: !root.details && (delegate.episodeInfo.length > 0 || root.expanded && root.grid && delegate.itemArtist.length > 0)
                             x: root.grid ? 0 : thumbnail.width + theme.dp(10)
                             y: root.grid ? thumbnail.height + theme.dp(root.expanded ? 64 : 39) - baselineOffset : parent.height / 2 + theme.dp(14) - baselineOffset
                             width: parent.width - x - (root.grid ? 0 : theme.dp(26))

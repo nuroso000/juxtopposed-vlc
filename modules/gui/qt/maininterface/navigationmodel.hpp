@@ -1,3 +1,4 @@
+/* Modified 2026-10-24: macOS accessibility and build compatibility. */
 /*****************************************************************************
  * Copyright (C) 2020 VLC authors and VideoLAN
  *
@@ -21,6 +22,8 @@
 
 #include <QObject>
 #include <QQmlEngine>
+#include <QQmlParserStatus>
+#include <QtQml/qqmlregistration.h>
 #include <QAbstractListModel>
 
 class NavigationModelItem

@@ -191,6 +191,7 @@ TestCase {
         playlistItems.append({id: "first", title: "First again"})
         playlistEditSpy.clear(); playlistMoveSpy.clear(); playlistRemoveSpy.clear()
         library.grid = false
+        library.details = false
         library.scaleFactor = 1
         library.expanded = false
         library.searchText = ""
@@ -572,6 +573,7 @@ TestCase {
         verify(current.width > 0)
         verify(!current.contentItem.truncated)
         const overflow = findChild(location, "libraryPathOverflow")
+        verify(waitForRendering(overflow))
         mouseClick(overflow)
         const menu = findChild(location, "libraryAncestorMenu")
         tryCompare(menu, "opened", true)
@@ -601,7 +603,10 @@ TestCase {
         }
         const oldWidth = expanded.widths[0]
         library.scaleFactor = 1.25
-        tryVerify(() => expanded.widths[0] > oldWidth * 1.2)
+        // Optical font sizing can make glyph width grow nonlinearly.
+        tryVerify(() => expanded.widths[0] > oldWidth)
+        const scaledLabel = findChild(expanded, "libraryPath0").contentItem
+        verify(expanded.widths[0] >= Math.ceil(scaledLabel.implicitWidth))
         for (let i = 0; i < 4; ++i) verify(!findChild(expanded, "libraryPath" + i).contentItem.truncated)
     }
     function test_categoryHeadingUsesRegularSourceWeight() {
@@ -835,6 +840,26 @@ TestCase {
         verify(grid.checked); verify(!list.checked)
         mouseClick(list)
         compare(library.grid, false)
+    }
+    function test_detailsViewUsesFullRowsAndPersists() {
+        settings.saved = "{}"
+        const view = createTemporaryObject(viewComponent, testCase)
+        view.expanded = true
+        view.grid = false
+        view.details = true
+        compare(JSON.parse(settings.saved).expanded, "details")
+        const restored = createTemporaryObject(viewComponent, testCase)
+        restored.expanded = true
+        verify(restored.details)
+        verify(!restored.grid)
+        restored.expanded = false
+        verify(!restored.details)
+        restored.expanded = true
+        verify(restored.details)
+        library.details = true
+        const mediaView = findChild(library, "libraryMediaView")
+        compare(mediaView.cellWidth, mediaView.width)
+        compare(mediaView.cellHeight, 66)
     }
     function test_viewMenuKeyboardStartsAtCurrentChoice_data() {
         return [{tag: "list", grid: false, index: 1}, {tag: "grid", grid: true, index: 0}]

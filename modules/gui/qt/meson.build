@@ -1,3 +1,4 @@
+# Modified 2026-10-24: macOS Qt framework header compatibility.
 #
 # Qt-based interface module
 #
@@ -35,6 +36,13 @@ qt6_dep = dependency('qt6',
 if host_machine.system() == 'darwin' and qt6_dep.found()
     qt_libdir = qt6_dep.get_variable(pkgconfig: 'libdir', configtool: 'QT_INSTALL_LIBS')
     qt_extra_flags += '-F' + qt_libdir
+    # Homebrew Qt 6.12 adds include_next forwarding headers. moc does not
+    # resolve those like Clang does; prefer the actual framework headers.
+    qt_header_dir = qt6_dep.get_variable(pkgconfig: 'includedir', configtool: 'QT_INSTALL_HEADERS')
+    qt_moc_headers = meson.current_build_dir() / 'framework-headers'
+    run_command(find_program('python3'), files('scripts/qt-framework-headers.py'),
+        qt_libdir, qt_header_dir, qt_moc_headers, check: true)
+    qt_extra_flags += '-I' + qt_moc_headers
     if host_machine.cpu_family() == 'aarch64' and qt6_dep.version().version_compare('<6.9')
         # Qt 6.8's qyieldcpu.h calls __yield without its ARM ACLE declaration
         # when newer Apple Clang recognizes it as a builtin.

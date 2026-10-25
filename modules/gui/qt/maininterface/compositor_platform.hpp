@@ -1,3 +1,4 @@
+/* Modified 2026-10-24: macOS accessibility and build compatibility. */
 /*****************************************************************************
  * Copyright (C) 2024 VLC authors and VideoLAN
  *
@@ -19,15 +20,34 @@
 #define COMPOSITOR_PLATFORM_HPP
 
 #include "compositor.hpp"
+#include "compositor_accessibility.hpp"
 
 #include <QWindow>
 #include <QPointer>
+#include <QQuickWindow>
 
 #include <memory>
 
 class QQuickView;
 
 namespace vlc {
+
+// The platform compositor renders its QML interface in a child window. Expose
+// that scene through the real top-level window for macOS accessibility clients.
+class CompositorPlatformRootWindow : public QWindow, public AccessibleRenderWindow
+{
+    Q_OBJECT
+public:
+    QPointer<QQuickWindow> accessibleWindow;
+    QQuickWindow *getOffscreenWindow() const override { return accessibleWindow; }
+#if QT_CONFIG(accessibility)
+    QAccessibleInterface *accessibleRoot() const override;
+#endif
+    QObject *focusObject() const override
+    {
+        return accessibleWindow ? accessibleWindow->focusObject() : QWindow::focusObject();
+    }
+};
 
 class CompositorPlatform : public CompositorVideo
 {
@@ -62,7 +82,7 @@ private slots:
     void onSurfaceSizeChanged(const QSizeF& size) override;
 
 private:
-    std::unique_ptr<QWindow> m_rootWindow;
+    std::unique_ptr<CompositorPlatformRootWindow> m_rootWindow;
     QPointer<QWindow> m_videoWindow;
     QPointer<QQuickView> m_quickWindow;
 
