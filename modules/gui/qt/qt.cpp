@@ -50,6 +50,7 @@ extern "C" char **environ;
 
 #ifdef __APPLE__
 # include <TargetConditionals.h>
+# include <crt_externs.h>
 #endif
 
 #include <QApplication>
@@ -59,6 +60,7 @@ extern "C" char **environ;
 #include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
+#include <QSet>
 #include <QDate>
 #include <QMutex>
 #include <QtQuickControls2/QQuickStyle>
@@ -965,6 +967,7 @@ static void *Thread( void *obj )
         qt_intf_t *m_intf;
         QVariantList m_pendingFiles;
         bool m_fileOpeningReady = false;
+        QSet<QUrl> m_relativeCommandLineFiles;
 
         void openPendingFiles()
         {
@@ -978,6 +981,19 @@ static void *Thread( void *obj )
         AppEventSpy(QObject *parent, qt_intf_t *intf)
              : QObject(parent), m_intf(intf)
         {
+#ifdef __APPLE__
+            // Cocoa expands relative CLI values to absolute document paths.
+            // Consume their startup echoes once; VLC already parsed argv.
+            const int count = *_NSGetArgc();
+            char **arguments = *_NSGetArgv();
+            for (int i = 1; i < count; ++i)
+            {
+                const QString argument = QString::fromLocal8Bit(arguments[i]);
+                if (!argument.startsWith('-') && QUrl(argument).isRelative()
+                    && !QDir::isAbsolutePath(argument))
+                    m_relativeCommandLineFiles.insert(QUrl::fromLocalFile(QDir::current().absoluteFilePath(argument)));
+            }
+#endif
             qGuiApp->installEventFilter(this);
         }
         void enableFileOpening()
@@ -1012,6 +1028,11 @@ static void *Thread( void *obj )
                 const auto event = static_cast<QFileOpenEvent *>(e);
                 const auto url = event->url().isEmpty()
                     ? QUrl::fromLocalFile(event->file()) : event->url();
+                if (m_relativeCommandLineFiles.remove(url))
+                {
+                    e->accept();
+                    return true;
+                }
                 // AppKit may echo CLI option values as document names. They
                 // are not Finder files; do not interrupt playback for them.
                 if (url.isValid() && !url.isEmpty()
