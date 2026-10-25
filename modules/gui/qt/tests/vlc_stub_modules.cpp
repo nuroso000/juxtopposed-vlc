@@ -184,7 +184,8 @@ VLCTestingEnv::~VLCTestingEnv()
 }
 
 static const char * test_defaults_args[] = {
-    "-v", "--vout=vdummy", "--aout=adummy", "--text-renderer=tdummy", "--media-library"
+    // These stub-backed model tests do not launch media preparse workers.
+    "-v", "--no-auto-preparse", "--vout=vdummy", "--aout=adummy", "--text-renderer=tdummy", "--media-library"
 };
 
 static const int test_defaults_nargs = ARRAY_SIZE(test_defaults_args);

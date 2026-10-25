@@ -76,8 +76,22 @@ foreach vlc_test: vlc_tests
         moc_sources += qt6.preprocess(
             moc_headers: vlc_test.get('moc_headers', []),
             moc_sources: vlc_test.get('moc_sources', []),
+            # Use the same macOS framework-header overlay as the Qt plugin.
+            moc_extra_arguments: host_system == 'darwin' ? get_variable('qt_extra_flags', []) : [],
             include_directories: qt_include_dir,
             dependencies: qt6_dep)
+    endif
+
+    qt_test_cppargs = []
+    if host_system == 'darwin' and 'qt' in vlc_test.get('suite', [])
+        # Homebrew's framework dependencies omit these QtTest feature defines.
+        qt_test_cppargs = ['-DQT_GUI_LIB', '-DQT_WIDGETS_LIB', '-DQT_QUICK_LIB']
+        if vlc_plugins_targets.has_key('qt')
+            qt_test_cppargs += '-I' + vlc_plugins_targets['qt'].full_path() + '.p'
+        endif
+        if is_variable('qt_moc_headers')
+            qt_test_cppargs += '-I' + qt_moc_headers
+        endif
     endif
 
     test_exe = executable(vlc_test['name'], vlc_test['sources'], moc_sources,
@@ -90,7 +104,7 @@ foreach vlc_test: vlc_tests
         dependencies: [vlc_test.get('dependencies', []),
             libvlccore_deps, opengl_dep],
         c_args: [vlc_test.get('c_args', []), common_args],
-        cpp_args: [vlc_test.get('cpp_args', []), common_args],
+        cpp_args: [vlc_test.get('cpp_args', []), common_args, qt_test_cppargs],
         objc_args: [vlc_test.get('objc_args', []), common_args])
 
     # Handle optional test wrapper (e.g., xvfb-run for X11 tests)

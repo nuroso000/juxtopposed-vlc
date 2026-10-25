@@ -30,7 +30,7 @@ JOBS=6 bash extras/package/release/build-native.sh
 QT_QPA_PLATFORM=offscreen meson test -C build-release-macos --suite qt --num-processes 1 --timeout-multiplier 3 --print-errorlogs
 ```
 
-The framework-header overlay is local to the build directory. Normal app preferences are unchanged; `VLC_USERDATA_PATH` can isolate Qt settings for QA. Packages must not include private profiles or personal media. The new beta.5 source needs fresh validation; the earlier beta.4 test results are not evidence for this build.
+The framework-header overlay is local to the build directory. Normal app preferences are unchanged; `VLC_USERDATA_PATH` can isolate Qt settings for QA. Packages must not include private profiles or personal media. The beta.5 validation is recorded in [MACOS-VERIFICATION.md](MACOS-VERIFICATION.md). The earlier beta.4 test results are not reused as evidence for this build.
 
 ## Credit and limits
 

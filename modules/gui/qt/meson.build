@@ -1563,6 +1563,8 @@ if qt6_dep.found()
         'dependencies': [qt6_dep, qt_extra_deps],
     }
 
+    # macOS dead stripping must retain the test executable's fake modules.
+    qt_test_static_flags = host_system == 'darwin' ? ['-Wl,-u,_vlc_static_modules'] : []
     qtest_qt6_dep = dependency('qt6', version: '=' + qt6_dep.version(), modules: ['Test'], required: false)
     if qtest_qt6_dep.found()
         if host_system == 'windows'
@@ -1856,7 +1858,7 @@ if qt6_dep.found()
             'suite': ['qt'],
             'include_directories' : qt_include_dir,
             'link_with': [libvlccore, libvlc],
-            'link_args': qt_link_args,
+            'link_args': qt_link_args + qt_test_static_flags,
             'dependencies': [qt6_dep, qt_extra_deps, qtest_qt6_dep],
         }
 
@@ -1877,6 +1879,7 @@ if qt6_dep.found()
             'suite': ['qt'],
             'include_directories' : qt_include_dir,
             'link_with': [libvlccore, libvlc],
+            'link_args': qt_link_args + qt_test_static_flags,
             'dependencies': [qt6_dep, qt_extra_deps, qtest_qt6_dep]
         }
 
@@ -1897,6 +1900,7 @@ if qt6_dep.found()
             'suite': ['qt'],
             'include_directories' : qt_include_dir,
             'link_with': [libvlccore, libvlc],
+            'link_args': qt_link_args + qt_test_static_flags,
             'dependencies': [qt6_dep, qt_extra_deps, qtest_qt6_dep]
         }
 
@@ -1907,6 +1911,7 @@ if qt6_dep.found()
             'suite': ['qt'],
             'include_directories': qt_include_dir,
             'link_with': [libvlccore, libvlc],
+            'link_args': qt_link_args + qt_test_static_flags,
             'dependencies': [qt6_dep, qt_extra_deps, qtest_qt6_dep]
         }
 
@@ -1936,7 +1941,7 @@ if qt6_dep.found()
             'suite': ['qt'],
             'include_directories' : qt_include_dir,
             'link_with': [libvlccore, libvlc],
-            'link_args': qt_link_args,
+            'link_args': qt_link_args + qt_test_static_flags,
             'dependencies': [qt6_dep, qt_extra_deps, qtest_qt6_dep]
         }
 
@@ -2091,7 +2096,7 @@ if qt6_dep.found()
             'suite': ['qt'],
             'include_directories' : qt_include_dir,
             'link_with': [libvlccore, libvlc],
-            'link_args': qt_link_args,
+            'link_args': qt_link_args + qt_test_static_flags,
             'dependencies': [qt6_dep, qt_extra_deps, qtest_qt6_dep],
         }
     endif

@@ -544,7 +544,7 @@ TestCase {
         const editor=findChild(dialog,"trackAssignmentSearchDetails")
         tryCompare(editor,"opened",true)
         const apply=findChild(dialog,"subtitleSearchDetailApply")
-        verify(apply.enabled);mouseClick(apply);tryCompare(editor,"visible",false)
+        verify(apply.enabled);verify(waitForRendering(apply));mouseClick(apply);tryCompare(editor,"visible",false)
         compare(dialog.searchTitle,"A Movie");compare(dialog.searchDetails.year,-1);compare(dialog.searchDetails.episodes.length,0)
     }
     function test_searchDetailsPreserveAbsoluteNumbersAndAirDates_data() {
