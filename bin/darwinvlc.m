@@ -275,8 +275,14 @@ int main(int i_argc, const char *ppsz_argv[])
 
     unsetenv("VLC_QT_FILE_EVENTS_READY");
     unsetenv("VLC_QT_STARTUP_DOCUMENTS");
-    VLCStartupDocuments *startupDocuments = [[VLCStartupDocuments alloc] init];
-    [NSApplication sharedApplication].delegate = startupDocuments;
+    VLCStartupDocuments *startupDocuments = nil;
+    /* LaunchServices starts GUI applications through launchd. Direct CLI
+     * launches already supply media in argv; initializing Cocoa here would
+     * make AppKit reinterpret option values as document names. */
+    if (getppid() == 1) {
+        startupDocuments = [[VLCStartupDocuments alloc] init];
+        [NSApplication sharedApplication].delegate = startupDocuments;
+    }
 
     dispatch_queue_t intf_queue = dispatch_queue_create("org.videolan.vlc", NULL);
 
