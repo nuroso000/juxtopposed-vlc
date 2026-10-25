@@ -1,6 +1,6 @@
 # macOS design fork
 
-This is a fork of [dsojevic/juxtopposed-vlc](https://github.com/dsojevic/juxtopposed-vlc), with its original VLC history. The `macos-redesign` branch includes upstream `958859ebb3f02e526fc0ec8f99336434e6143739` (4.0.0-beta.5), including all 321 commits after the previous local beta.4 base. The upstream `master` branch remains available for synchronization.
+This is a fork of [dsojevic/juxtopposed-vlc](https://github.com/dsojevic/juxtopposed-vlc), with its original VLC history. The `macos-redesign` branch includes upstream `afc91a108e8203e9ce9ff73c00b835fdf4cb7b4c`: the beta.5 release plus three subsequent maintenance commits, including all 324 commits after the previous local beta.4 base. The upstream `master` branch remains available for synchronization.
 
 The local adaptations expose the QML controls through Cocoa accessibility, forward keyboard focus/events, set stable window titles, support Qt 6.12 framework headers, open Home on idle startup, isolate explicitly requested QA profiles, add persistent Details rows and refresh add-on metadata. The new podcast/library behavior from beta.5 is retained when resolving the old patch.
 
@@ -26,11 +26,12 @@ This workflow preserves the chosen design by controlling what is released. It ca
 Follow [BUILD-macos.md](BUILD-macos.md) and [RELEASING.md](RELEASING.md). The local Qt 6.12 toolchain produces an arm64 app requiring macOS 27.0+. The app is ad-hoc signed without Developer ID/notarization and is an experimental community build, not an official VideoLAN release.
 
 ```sh
+export PATH="$(brew --prefix bison)/bin:$(brew --prefix flex)/bin:$PATH"
 JOBS=6 bash extras/package/release/build-native.sh
 QT_QPA_PLATFORM=offscreen meson test -C build-release-macos --suite qt --num-processes 1 --timeout-multiplier 3 --print-errorlogs
 ```
 
-The framework-header overlay is local to the build directory. Normal app preferences are unchanged; `VLC_USERDATA_PATH` can isolate Qt settings for QA. Packages must not include private profiles or personal media. The beta.5 validation is recorded in [MACOS-VERIFICATION.md](MACOS-VERIFICATION.md). The earlier beta.4 test results are not reused as evidence for this build.
+Keep Homebrew Bison/Flex on PATH for subsequent Meson commands; otherwise reconfiguration can disable JSON-backed modules when it finds the old macOS system Bison. The framework-header overlay is local to the build directory. Normal app preferences are unchanged; `VLC_USERDATA_PATH` can isolate Qt settings for QA. Packages must not include private profiles or personal media. The beta.5 validation is recorded in [MACOS-VERIFICATION.md](MACOS-VERIFICATION.md). The earlier beta.4 test results are not reused as evidence for this build.
 
 ## Credit and limits
 

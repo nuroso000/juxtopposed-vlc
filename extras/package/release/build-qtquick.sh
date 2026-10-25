@@ -24,7 +24,11 @@ cmake -S "$source_dir" -B "$work/build" -G Ninja \
 # Qt Quick uses private QML interfaces. Keep its feature configuration equal to
 # the binary SDK rather than installing a differently configured replacement.
 for module in qml quick; do
-    name="Qt${module^}"
+    # macOS ships Bash 3.2, which does not support ${parameter^}.
+    case "$module" in
+        qml) name=QtQml ;;
+        quick) name=QtQuick ;;
+    esac
     cmp "$work/build/src/$module/qt$module-config.h" "$qt_prefix/include/$name/qt$module-config.h"
     cmp "$work/build/src/$module/qt$module-config_p.h" \
         "$qt_prefix/include/$name/$version/$name/private/qt$module-config_p.h"
