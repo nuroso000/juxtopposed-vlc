@@ -1,3 +1,5 @@
+> **macOS design fork:** Use [`macos-redesign`](https://github.com/nuroso000/juxtopposed-vlc/tree/macos-redesign) for the current beta.5 integration. Read [the fork guide](doc/MACOS-FORK.md) for build instructions, update-channel behavior and limitations. Downloads are published in [this fork's Releases](https://github.com/nuroso000/juxtopposed-vlc/releases). The original project description and credits follow.
+
 # VLC media player
 
 This fork adapts [Juxtopposed’s VLC redesign](https://www.figma.com/community/file/1691465999134370980/vlc-redesign)

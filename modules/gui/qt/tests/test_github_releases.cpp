@@ -18,7 +18,7 @@ static Version version(const char* value)
 static QJsonObject release(const QString& tag, const QString& suffix = QStringLiteral("win64.zip"))
 {
     const QString name = QStringLiteral("vlc-juxtopposed-") + tag + QLatin1Char('-') + suffix;
-    const auto base = QStringLiteral("https://github.com/dsojevic/juxtopposed-vlc/releases/");
+    const auto base = QStringLiteral("https://github.com/nuroso000/juxtopposed-vlc/releases/");
     return {{QStringLiteral("tag_name"), tag}, {QStringLiteral("draft"), false},
             {QStringLiteral("prerelease"), Version::parse(tag)->isPrerelease()},
             {QStringLiteral("html_url"), QString(base + QStringLiteral("tag/") + tag)},
@@ -99,6 +99,18 @@ class TestGithubReleases : public QObject
 {
     Q_OBJECT
 private slots:
+    void forkUpdateSource()
+    {
+        QCOMPARE(QString::fromLatin1(GithubRepository), QStringLiteral("nuroso000/juxtopposed-vlc"));
+        QCOMPARE(GithubReleaseService::Options{}.endpoint,
+                 QUrl(QStringLiteral("https://api.github.com/repos/nuroso000/juxtopposed-vlc/releases")));
+        const Target mac{QStringLiteral("macos"), QStringLiteral("arm64")};
+        const auto own = release(QStringLiteral("4.0.0-beta.6"), QStringLiteral("macos-arm64.zip"));
+        QVERIFY(selectRelease({own}, version("4.0.0-beta.5"), mac));
+        auto upstream = QJsonDocument(own).toJson(QJsonDocument::Compact);
+        upstream.replace("nuroso000/juxtopposed-vlc", "dsojevic/juxtopposed-vlc");
+        QVERIFY(!selectRelease({QJsonDocument::fromJson(upstream).object()}, version("4.0.0-beta.5"), mac));
+    }
     void precedence_data()
     {
         QTest::addColumn<QString>("installed");

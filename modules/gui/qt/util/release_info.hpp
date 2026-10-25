@@ -8,6 +8,9 @@
 
 namespace vlc::updates {
 
+// Modified 2026-10-25: only offer reviewed releases from this design fork.
+inline constexpr const char GithubRepository[] = "nuroso000/juxtopposed-vlc";
+
 struct Version
 {
     // Compiled identity for the installed build; explicit metadata for releases.

@@ -1,3 +1,5 @@
+> This fork routes in-app update discovery and package validation to `nuroso000/juxtopposed-vlc`. See [MACOS-FORK.md](MACOS-FORK.md) before publishing. Updates notify and open a download page; installation is manual.
+
 # Cutting a release
 
 The release pipeline builds four native targets. The next release is `4.0.0-beta.5`:
