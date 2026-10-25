@@ -56,6 +56,8 @@ extern "C" char **environ;
 #include <QDir>
 #include <QFontDatabase>
 #include <QFileOpenEvent>
+#include <QJsonArray>
+#include <QJsonDocument>
 #include <QDate>
 #include <QMutex>
 #include <QtQuickControls2/QQuickStyle>
@@ -979,6 +981,17 @@ static void *Thread( void *obj )
         }
         void enableFileOpening()
         {
+#ifdef __APPLE__
+            const auto startup = QJsonDocument::fromJson(qgetenv("VLC_QT_STARTUP_DOCUMENTS")).array();
+            qunsetenv("VLC_QT_STARTUP_DOCUMENTS");
+            qputenv("VLC_QT_FILE_EVENTS_READY", "1");
+            for (const auto &entry : startup)
+            {
+                const QUrl url(entry.toString());
+                if (url.isValid() && !url.isEmpty() && !m_pendingFiles.contains(url))
+                    m_pendingFiles.append(url);
+            }
+#endif
             m_fileOpeningReady = true;
             openPendingFiles();
         }

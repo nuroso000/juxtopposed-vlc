@@ -51,6 +51,38 @@ struct vlc_context {
     bool quitting;
 };
 
+/* Cocoa can deliver the launch document before QApplication has an event
+ * filter. Qt retains this delegate as its reflection delegate. Keep only
+ * those early URLs in a process-local handoff, drained once by the Qt UI. */
+@interface VLCStartupDocuments : NSObject <NSApplicationDelegate>
+@end
+
+@implementation VLCStartupDocuments
+- (void)application:(NSApplication *)application openFiles:(NSArray<NSString *> *)filenames
+{
+    if (getenv("VLC_QT_FILE_EVENTS_READY"))
+        return;
+    NSMutableArray *urls = [NSMutableArray array];
+    const char *pending = getenv("VLC_QT_STARTUP_DOCUMENTS");
+    if (pending) {
+        NSData *data = [[NSString stringWithUTF8String:pending] dataUsingEncoding:NSUTF8StringEncoding];
+        id saved = [NSJSONSerialization JSONObjectWithData:data options:0 error:NULL];
+        if ([saved isKindOfClass:NSArray.class]) [urls addObjectsFromArray:saved];
+    }
+    for (NSString *filename in filenames) {
+        NSString *url = [NSURL fileURLWithPath:filename].absoluteString;
+        if (url && ![urls containsObject:url]) [urls addObject:url];
+    }
+    NSData *data = [NSJSONSerialization dataWithJSONObject:urls options:0 error:NULL];
+    if (data) {
+        NSString *json = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+        setenv("VLC_QT_STARTUP_DOCUMENTS", json.UTF8String, 1);
+        [json release];
+    }
+    [application replyToOpenOrPrint:NSApplicationDelegateReplySuccess];
+}
+@end
+
 /**
  * Handler called when VLC asks to terminate the program.
  */
@@ -241,6 +273,11 @@ int main(int i_argc, const char *ppsz_argv[])
     argc += i_argc;
     argv[argc] = NULL;
 
+    unsetenv("VLC_QT_FILE_EVENTS_READY");
+    unsetenv("VLC_QT_STARTUP_DOCUMENTS");
+    VLCStartupDocuments *startupDocuments = [[VLCStartupDocuments alloc] init];
+    [NSApplication sharedApplication].delegate = startupDocuments;
+
     dispatch_queue_t intf_queue = dispatch_queue_create("org.videolan.vlc", NULL);
 
     __block struct vlc_context context = {
@@ -320,6 +357,8 @@ int main(int i_argc, const char *ppsz_argv[])
     vlc_sem_wait(&context.wait_quit);
 
 out:
+
+    [startupDocuments release];
 
     dispatch_release(sigIntSource);
     dispatch_release(sigTermSource);
