@@ -39,7 +39,7 @@ class PackageTests(unittest.TestCase):
 
     def test_macos_signs_nested_code_before_bundles_without_identity(self):
         with tempfile.TemporaryDirectory() as temp:
-            app = Path(temp) / 'VLC Juxtopposed.app'
+            app = Path(temp) / 'VLC.app'
             launcher = self.make_bundle(app, 'vlc')
             framework = app / 'Contents/Frameworks/QtCore.framework'
             framework_main = self.make_bundle(framework, 'QtCore', framework=True)
@@ -96,7 +96,7 @@ class PackageTests(unittest.TestCase):
                     path = sources / name
                     path.parent.mkdir(parents=True, exist_ok=True)
                     path.write_bytes(b'fixture')
-                app = output / f'macos-{arch}/VLC Juxtopposed.app'
+                app = output / f'macos-{arch}/VLC.app'
                 verified = False
                 sealed_info = None
 
@@ -117,6 +117,8 @@ class PackageTests(unittest.TestCase):
                     if args[0] == 'codesign':
                         info = (app / 'Contents/Info.plist').read_bytes()
                         self.assertEqual(plistlib.loads(info)['LSMinimumSystemVersion'], '13.5')
+                        self.assertEqual(plistlib.loads(info)['CFBundleName'], 'VLC')
+                        self.assertEqual(plistlib.loads(info)['CFBundleDisplayName'], 'VLC')
                         if '--verify' in args:
                             self.assertEqual(info, sealed_info)
                             verified = True

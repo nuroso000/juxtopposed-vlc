@@ -19,6 +19,14 @@ parser.add_argument('--gui-runs', type=int, default=2, help='Repeat GUI startup 
 parser.add_argument('--require-opengl', action='store_true', help='Require the Qt Quick OpenGL renderer, not the software scene graph')
 parser.add_argument('--diagnostics-dir', type=Path, help='Keep process output, including failed starts, in this directory')
 args = parser.parse_args()
+# Retain compatibility with existing release jobs that pass the former bundle
+# name after extracting a ZIP. New macOS packages contain VLC.app.
+if not args.executable.exists() and args.executable.name == 'vlc':
+    legacy = args.executable.parent.parent.parent
+    if legacy.name == 'VLC Juxtopposed.app':
+        renamed = legacy.with_name('VLC.app') / 'Contents/MacOS/vlc'
+        if renamed.is_file():
+            args.executable = renamed
 if args.video and not args.gui:
     parser.error('--video requires --gui')
 if args.gui_runs < 1:

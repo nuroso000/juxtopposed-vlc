@@ -78,7 +78,7 @@ def sign_macos_adhoc(app, all_binaries):
 
 def macos(stage, output, tag, commit, reuse_qt=False):
     arch = run('uname', '-m')
-    app = output / f'macos-{arch}' / 'VLC Juxtopposed.app'
+    app = output / f'macos-{arch}' / 'VLC.app'
     if app.exists() and not reuse_qt:
         raise SystemExit(f'Remove the old package before rebuilding: {app}')
     contents = app / 'Contents'
@@ -112,8 +112,8 @@ def macos(stage, output, tag, commit, reuse_qt=False):
     (resources / 'SOURCE_COMMIT.txt').write_text(commit + '\n')
     # The Qt plugin has greater interface priority than minimal_macosx.
     # Keep a native main executable so NSBundle, Finder file events and AppKit work.
-    info = dict(CFBundleExecutable='vlc', CFBundleName='VLC Juxtopposed',
-                CFBundleDisplayName='VLC Juxtopposed', CFBundlePackageType='APPL',
+    info = dict(CFBundleExecutable='vlc', CFBundleName='VLC',
+                CFBundleDisplayName='VLC', CFBundlePackageType='APPL',
                 CFBundleIdentifier='org.juxtopposed.vlc', CFBundleIconFile='vlc.icns',
                 CFBundleVersion=bundle_version(tag),
                 CFBundleShortVersionString=tag.split('-')[0], NSHighResolutionCapable=True,

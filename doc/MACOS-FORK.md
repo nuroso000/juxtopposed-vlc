@@ -12,6 +12,22 @@ Automatic checks respect the existing update preference and check interval. They
 
 The previously supplied beta.4 app still contains its old endpoint. Install this fork's rebuilt app once to acquire the new update channel. From then on only releases deliberately published in this fork are eligible. A source update cannot be classified as "engine only" just by changing a setting: VLC's GUI and engine are built together. UI changes must be reviewed before the next fork release.
 
+## Install the DMG
+
+Download `VLC-4.0.0-beta.5-macos-arm64.dmg` from this fork's release. Quit VLC, open the image, drag **VLC.app** onto **Applications**, and choose **Replace** when Finder asks about the existing `/Applications/VLC.app`. Eject the image and launch VLC from Applications. The image does not run an automatic installer or remove user media/preferences.
+
+The app bundle and Finder display name are **VLC**. This fork keeps its own internal bundle identifier and update channel. The earlier ZIP remains available for compatibility; the DMG is the recommended macOS download.
+
+To create the image from a verified build:
+
+```sh
+python3 extras/package/release/make-macos-dmg.py \
+  "build-release-output/macos-arm64/VLC.app" \
+  --output "build-release-output/VLC-4.0.0-beta.5-macos-arm64.dmg"
+```
+
+The packaging script also accepts the earlier `VLC Juxtopposed.app` as input, copies it as `VLC.app`, updates the display name, re-signs the outer bundle, verifies nested signatures and creates a compressed disk image with an Applications link. Its sidecar records both the compiled source commit and packaging commit. No installed app is modified while creating the image.
+
 ## Maintain the fork
 
 1. Fetch `upstream/master` and merge it into a separate review branch based on `macos-redesign`.
