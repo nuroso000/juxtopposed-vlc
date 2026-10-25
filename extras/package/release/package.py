@@ -15,6 +15,20 @@ from version import validate_tag, bundle_version
 ROOT = Path(__file__).resolve().parents[3]
 
 
+def macos_document_metadata():
+    """Keep the media/URL declarations from VLC's native macOS bundle."""
+    with (ROOT / 'share/Info.plist.in').open('rb') as stream:
+        template = plistlib.load(stream)
+    metadata = {key: template[key] for key in (
+        'CFBundleDocumentTypes', 'CFBundleURLTypes',
+        'UTExportedTypeDeclarations', 'UTImportedTypeDeclarations') if key in template}
+    # The Qt package ships the main cone icon, not Cocoa's per-format icons.
+    for document in metadata.get('CFBundleDocumentTypes', []):
+        if 'CFBundleTypeIconFile' in document:
+            document['CFBundleTypeIconFile'] = 'vlc.icns'
+    return metadata
+
+
 def run(*args, **kwargs):
     return subprocess.check_output([str(a) for a in args], text=True, **kwargs).strip()
 
@@ -119,6 +133,7 @@ def macos(stage, output, tag, commit, reuse_qt=False):
                 CFBundleShortVersionString=tag.split('-')[0], NSHighResolutionCapable=True,
                 NSMicrophoneUsageDescription='VLC can play and record audio from input devices.',
                 NSCameraUsageDescription='VLC can play and record video from input devices.')
+    info.update(macos_document_metadata())
     with (contents / 'Info.plist').open('wb') as stream:
         plistlib.dump(info, stream)
     deploy = qt / 'bin/macdeployqt'

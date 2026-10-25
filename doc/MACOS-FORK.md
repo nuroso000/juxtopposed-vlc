@@ -54,3 +54,9 @@ Keep Homebrew Bison/Flex on PATH for subsequent Meson commands; otherwise reconf
 VLC by VideoLAN and contributors. Community interface by dsojevic and contributors, adapted from [VLC Redesign by Juxtopposed](https://www.figma.com/community/file/1691465999134370980/vlc-redesign), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), [video](https://youtu.be/ERFeOgqk324). Adapted for real desktop controls, native macOS integration and responsive library views. Existing software/font/dependency licenses remain in place.
 
 Some specialist dialogs retain their VLC arrangement under the theme. Every Figma state has not received a pixel-diff certificate. Device, codec, HDR, casting and online-service support require their own testing.
+
+## Finder document opening
+
+macOS packages retain VLC's native media, URL and imported/exported type declarations. Qt handles Finder document events through `QFileOpenEvent`, queues files received during startup, and passes them to the playlist after initialization. Opening another document in an already running app uses the same path.
+
+If a video still opens an older copy of VLC, select a video in Finder, choose Get Info, select VLC from Applications under Open with, and use Change All for that file type. The installer does not silently change associations owned by other players.

@@ -7,6 +7,7 @@ from pathlib import Path
 import plistlib
 import subprocess
 import tempfile
+from package import macos_document_metadata
 
 
 def run(*args):
@@ -35,6 +36,7 @@ def main():
         with info_path.open('rb') as stream:
             info = plistlib.load(stream)
         info.update(CFBundleName='VLC', CFBundleDisplayName='VLC')
+        info.update(macos_document_metadata())
         with info_path.open('wb') as stream:
             plistlib.dump(info, stream)
         # Only the outer bundle metadata changed; retain all nested code seals.

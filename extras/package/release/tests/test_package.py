@@ -96,6 +96,7 @@ class PackageTests(unittest.TestCase):
                     path = sources / name
                     path.parent.mkdir(parents=True, exist_ok=True)
                     path.write_bytes(b'fixture')
+                (sources / 'share/Info.plist.in').write_bytes((package.ROOT / 'share/Info.plist.in').read_bytes())
                 app = output / f'macos-{arch}/VLC.app'
                 verified = False
                 sealed_info = None
@@ -119,6 +120,9 @@ class PackageTests(unittest.TestCase):
                         self.assertEqual(plistlib.loads(info)['LSMinimumSystemVersion'], '13.5')
                         self.assertEqual(plistlib.loads(info)['CFBundleName'], 'VLC')
                         self.assertEqual(plistlib.loads(info)['CFBundleDisplayName'], 'VLC')
+                        types = {uti for entry in plistlib.loads(info)['CFBundleDocumentTypes'] for uti in entry.get('LSItemContentTypes', [])}
+                        self.assertIn('public.mpeg-4', types)
+                        self.assertTrue(any('mkv' in entry.get('CFBundleTypeExtensions', []) for entry in plistlib.loads(info)['CFBundleDocumentTypes']))
                         if '--verify' in args:
                             self.assertEqual(info, sealed_info)
                             verified = True
