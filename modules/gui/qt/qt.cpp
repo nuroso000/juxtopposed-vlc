@@ -56,6 +56,7 @@ extern "C" char **environ;
 #include <QDir>
 #include <QFontDatabase>
 #include <QFileOpenEvent>
+#include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QDate>
@@ -988,7 +989,8 @@ static void *Thread( void *obj )
             for (const auto &entry : startup)
             {
                 const QUrl url(entry.toString());
-                if (url.isValid() && !url.isEmpty() && !m_pendingFiles.contains(url))
+                if (url.isValid() && !url.isEmpty() && !m_pendingFiles.contains(url)
+                    && (!url.isLocalFile() || QFileInfo::exists(url.toLocalFile())))
                     m_pendingFiles.append(url);
             }
 #endif
@@ -1010,7 +1012,10 @@ static void *Thread( void *obj )
                 const auto event = static_cast<QFileOpenEvent *>(e);
                 const auto url = event->url().isEmpty()
                     ? QUrl::fromLocalFile(event->file()) : event->url();
-                if (url.isValid() && !url.isEmpty())
+                // AppKit may echo CLI option values as document names. They
+                // are not Finder files; do not interrupt playback for them.
+                if (url.isValid() && !url.isEmpty()
+                    && (!url.isLocalFile() || QFileInfo::exists(url.toLocalFile())))
                     m_pendingFiles.append(url);
                 openPendingFiles();
                 e->accept();
